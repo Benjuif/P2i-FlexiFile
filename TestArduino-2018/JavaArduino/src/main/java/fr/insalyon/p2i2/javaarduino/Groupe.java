@@ -3,33 +3,23 @@ package fr.insalyon.p2i2.javaarduino;
 import java.util.*;
 
 public class Groupe {
-	
+	// attributs de la classe localisation
 	private final int idGroupe;
 	private String nomGroupe;
-	private int densite;
+	public ArrayList<Capteur> listeCapteur = new ArrayList<Capteur>();
         
-	public ArrayList<Capteur> listCapteur = new ArrayList<Capteur>();
-	
-	public Groupe(int id, String nom, int d){
-		idGroupe = id;
-		nomGroupe = nom;
-		densite = d;
-	}
-	
-        public Groupe (int id){
-                idGroupe = id;   
+	//Constructeur de la classe
+	public Groupe(int id, String nom){
+            idGroupe = id;
+            nomGroupe = nom;	
         }
-	
+        
+        // ------ getters -------      
         public int getIdGroupe(){
-		return idGroupe;
+            return idGroupe;
 	}
 	public String getNom(){
-		return nomGroupe;
+            return nomGroupe;
 	}
-	public int getDensite(){
-		return densite;
-	}
-        
-   
 }
 		

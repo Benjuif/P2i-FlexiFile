@@ -7,7 +7,6 @@ import java.sql.*;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
-import java.util.*;
 
 
 public class TestArduino {
@@ -19,22 +18,20 @@ public class TestArduino {
         //main.start();
         return 0;
     }
-    
-    
-    
+        
     private Connection connection;
-    public ArrayList <Groupe> list = new ArrayList <Groupe>();
+    public GestionnaireFile gestionnaire ; 
+
     
-    
-    
+    public void start (){
+        gestionnaire = new GestionnaireFile (new Client ("DDR_INSA"), connection );    
+    }
     
     public TestArduino()
     {
-        
-  
         String bd = "G223_B_BD2";
-	String login = "G223_B";
-	String mdp = "G223_B";
+        String login = "G223_B";
+        String mdp = "G223_B";
 	try {
 
             // Chargement de la classe du driver par le DriverManager
@@ -105,7 +102,7 @@ public class TestArduino {
                 }
             
                 //calcul longueur file 
-                for (Groupe grp: list){
+                for (Groupe grp: gestionnaire.listeGroupe){
                     // todo : chercher groupe correspondant au capteur
                     try {
                         //Creation de la requete
@@ -116,11 +113,10 @@ public class TestArduino {
                         long currentTime = System.currentTimeMillis();
                         java.sql.Timestamp time = new java.sql.Timestamp(currentTime - 7200000);
 
-                        ps.setInt(1,longueur);
-                        ps.setTimestamp(4,time);
+                        ps.setInt(1,longueur);                       
                         ps.setInt (3,grp.getIdGroupe());
                         ps.setTimestamp(4,time);
-
+                      
                         //execution de la requete
                         ps.executeUpdate();
                     }
@@ -201,7 +197,7 @@ public class TestArduino {
             
             while (rs.next()) {
                 cap = new Capteur (rs.getInt("idCapteur"), rs.getInt("numSerie"), idGroupe);
-                grp.listCapteur.add(cap);    
+                grp.listeCapteur.add(cap);    
             }
         }
         catch(SQLException e){

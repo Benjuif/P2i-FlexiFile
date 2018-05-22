@@ -1,52 +1,38 @@
 package fr.insalyon.p2i2.javaarduino;
 
 
-import java.sql.Date;
-
+import java.util.*;
 
 public class Capteur {
 	
+        // attributs de la classe capteur 
 	private final int idCapteur; 
-	private final int numSerie;
         private final int idGroupe;
-        
-        private int distanceX; 
-        
-        private int position; 
-        private Date dateDebut; 
-        private Date dateFin;
+	private final int numSerie;
+        private final String fabricant = "Grove";
+        public ArrayList <Mesure> listeMesure ; 
+        public Localisation localisation; 
 	
-	public Capteur (int id, int num,int idG){
-		idCapteur = id; 
-		numSerie = num; 
-                idGroupe = idG; 
+        //Constructeur de la classe
+	public Capteur (int id, int idG,int num){
+            idCapteur = id; 
+            numSerie = num; 
+            idGroupe = idG; 
 	}
-	
+
+        // ------ getters -------
 	public int getIdCapteur(){
-		return idCapteur;
+            return idCapteur;
 	}
         public int getIdGroupe(){
-		return idGroupe;
+            return idGroupe;
 	}
 	public int getNumSerie(){
-		return numSerie;
+            return numSerie;
 	}
-        
-        public int getDistanceX(){
-		return distanceX;
-	}
-        public int getPosition(){
-            return position;   
+        public String getFabricant(){
+            return fabricant;
         }
-       
-        public Date getDateDebut(){
-                return dateDebut;
-        }
-        public Date getDateFin(){
-                return dateFin; 
-        }
-        public void setDistanceX(int X){
-		distanceX = X;
-	}
+
 }
 

@@ -11,27 +11,36 @@ import java.sql.*;
  * @author bouzi
  */
 public class Mesure {
-   private int idCapteur; 
-   private Date dateMesure ;
-   private double valeur ; 
-   
-   
-   public Mesure(int id,Date d, double val){
-       idCapteur = id; 
-       dateMesure = d; 
-       valeur = val; 
-   }
-  
-   public int getIdCapteur(){
-       return idCapteur; 
-   }
-   
-   public Date getDateMesure (){
-       return dateMesure;
-   }
-   
-   public double getValeur (){
-       return valeur; 
-   }
+        //attributs de la classe 
+        private int idMesure;  
+        private int idCapteur; 
+        private Date dateMesure ;
+        private double valeur ; 
 
+        //constructeur de la classe Mesure
+        public Mesure(int idM, int idC, Date d, double val){
+            idMesure = idM; 
+            idCapteur = idC; 
+            dateMesure = d; 
+            valeur = val; 
+        }
+
+        // ------ getters -------
+        public int getIdMesure (){
+            return idMesure; 
+        }
+        public int getIdCapteur(){
+            return idCapteur; 
+        }
+        public Date getDateMesure (){
+            return dateMesure;
+        }
+        public double getValeur (){
+            return valeur; 
+        }
+        
+        // ------ setters -------
+        public void setValeur(int v){
+            valeur = v;
+        }
 }
