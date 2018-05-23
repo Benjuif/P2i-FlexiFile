@@ -3,6 +3,7 @@ package fr.insalyon.p2i2.javaarduino;
 import fr.insalyon.p2i2.javaarduino.usb.ArduinoManager;
 import fr.insalyon.p2i2.javaarduino.util.Console;
 import java.io.IOException;
+import static java.lang.System.console;
 import java.sql.*;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -11,35 +12,36 @@ import java.sql.PreparedStatement;
 
 public class TestArduino {
     
+    const String DB_NAME = "G223_B_BD2";
+    const String DB_LOGIN = "G223_B";
+    const String DB_PW = "G223_B";
+    
     public static int main(String[] args)
     {
-        TestArduino main = new TestArduino();
-        //main.setup();
-        main.start();
+        try {
+            TestArduino main = new TestArduino();
+            main.setup();
+            main.start();
+        }
+        catch (Exception ex)
+        {
+            System.err.println(e.getMessage());
+            return -1;
+        }
         return 0;
     }
        
     private Connection connection;
     public GestionnaireFile gestionnaire ; 
 
-    
-    public void start (){
-        gestionnaire = new GestionnaireFile (new Client ("DDR_INSA"), connection );    
-    }
-    
-    public TestArduino()
-    {
-        String bd = "G223_B_BD2";
-        String login = "G223_B";
-        String mdp = "G223_B";
-	try {
-
+    public void setup() {
+        try {
             // Chargement de la classe du driver par le DriverManager
             Class.forName("com.mysql.jdbc.Driver");
             System.out.println("Driver trouvé...");
 
             // Création d'une connexion sur la base de donnée
-            connection = DriverManager.getConnection("jdbc:mysql://PC-TP-MYSQL.insa-lyon.fr:3306/" + bd, login, mdp);
+            connection = DriverManager.getConnection("jdbc:mysql://PC-TP-MYSQL.insa-lyon.fr:3306/" + DB_NAME, DB_LOGIN, DB_PW);
             System.out.println("Connexion établie...");
 
         } catch (ClassNotFoundException e) {
@@ -102,19 +104,27 @@ public class TestArduino {
                 }
             
                 //calcul longueur file 
-                for (Groupe grp: gestionnaire.listeGroupe){
-                    int idGroupe = grp.getId(Integer.parseInt(splitted[0]));
-                    if (idGroupe>-1){
+                for (Groupe grp: gestionnaire.getListeGroupe()){
+
+                    //int idGroupe = grp.getId(Integer.parseInt(splitted[0]));
+                   // if (idGroupe>-1){
+                   
+                    int idCapteur = Integer.parseInt(splitted[0]);
+                    Capteur capteur = grp.getListeCapteur().stream().filter((capt) -> capt.getIdCapteur() == idCapteur).findFirst().orElse(null);
+                    if (capteur != null)
+                    {
+
                         try {
                             //Creation de la requete
                             String sqlStr = "INSERT INTO File(longueur, tmpAttente, idGroupe, dateMesure) VALUES (?,?,?,?)";
 
                             PreparedStatement ps = connection.prepareStatement(sqlStr);
+
                             long currentTime = System.currentTimeMillis();
                             java.sql.Timestamp time = new java.sql.Timestamp(currentTime - 7200000);
 
                             ps.setInt(1,getLength(grp));
-                            ps.setInt(2,getTmpAttente(grp));
+                            ps.setLong(2,getTmpAttente(grp));
                             ps.setInt (3,grp.getIdGroupe());
                             ps.setTimestamp(4,time);
 
@@ -130,13 +140,20 @@ public class TestArduino {
                        
             }     
         };
+   
+        gestionnaire = new GestionnaireFile (new Client ("DDR_INSA"), connection );
+        gestionnaire.setup();
+    }
+            
+    
+    public void start (){
 
         try {
 
             console.log("DÉMARRAGE de la connexion");
             // Connexion à l'Arduino
             arduino.start();
-
+            gestionnaire.start();
             console.log("BOUCLE infinie en attente du Clavier");
             // Boucle d'ecriture sur l'arduino (execution concurrente au thread)
             boolean exit = false;
@@ -169,7 +186,10 @@ public class TestArduino {
             // Si un problème a eu lieu...
             console.log(ex);
         }
-
+    }
+    
+    public TestArduino()
+    {
     }
  
     
@@ -179,34 +199,7 @@ public class TestArduino {
     
     /** Méthode permettant de récupérer les capteurs d'un même groupe passé en paramètre.
      *  @param grp: groupe de capteurs */  
-     public void initGroupe(Groupe grp ){ 
-        Capteur cap; 
-        int idGroupe = grp.getIdGroupe();
-        
-        try{            
-            String query = "select * from Capteur where idGroupe = ?";
-       
-            // Construction de l'objet « requête parametrée »
-            PreparedStatement ps = connection.prepareStatement(query);
-            
-            // transformation en requête statique
-            ps.setInt(1, idGroupe) ; 
-            
-            //execution de la requete
-            ResultSet rs = ps.executeQuery();
-            System.out.println("requete executee ....");
-            
-            while (rs.next()) {
-                cap = new Capteur (rs.getInt("idCapteur"), rs.getInt("numSerie"), idGroupe);
-                grp.listeCapteur.add(cap);    
-            }
-        }
-        catch(SQLException e){
-            //si une erreur se produit, affichage du message correspondant
-            System.out.println(e.getMessage());
-            System.exit(0);
-        }
-    }
+
      
     /** Méthode permettant de récupérer la longeur de la file d'attente d'un groupe passée en paramètre
     *  @param grp: groupe de capteurs
@@ -241,13 +234,13 @@ public class TestArduino {
         }
         return longueur;
     }
-    public int getTmpAttente (Groupe grp){
+    public long getTmpAttente (Groupe grp){
         //distanace entre 2 capteurs = 3;
         //densite = 4personne/m²;
         //vitesse =0.033 personne/s;
-        int tmpAttente=0;
+        long tmpAttente=0;
         try{
-            String query = "select sum(l.distanceX *3*4*0.033) as TmpAttente  from Localisation l , Capteur c" +
+            String query = "select ROUND(sum(l.distanceX *3*4*0.033),2) as TmpAttente  from Localisation l , Capteur c" +
                            "where l.idCapteur = c.idCapteur and c.idGoupe=?" +
                            "and idCapteur in  (select idCapteur " +
                            "from Localisation l, File f , Capteur c, Groupe g " +
@@ -264,7 +257,7 @@ public class TestArduino {
                 System.out.println("requete executee ....");
 
                 while ( rs.next () ) {
-                    tmpAttente = rs.getInt(query);
+                    tmpAttente = rs.getLong(query);
                 }
             }
         catch(SQLException e){

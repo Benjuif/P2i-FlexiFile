@@ -6,7 +6,7 @@ public class Groupe {
 	// attributs de la classe localisation
 	private final int idGroupe;
 	private String nomGroupe;
-	public ArrayList<Capteur> listeCapteur = new ArrayList<Capteur>();
+	private ArrayList<Capteur> listeCapteur = new ArrayList<Capteur>();
         
 	//Constructeur de la classe
 	public Groupe(int id, String nom){
@@ -21,6 +21,9 @@ public class Groupe {
 	public String getNom(){
             return nomGroupe;
 	}
+        public ArrayList<Capteur> getListeCapteur(){
+            return listeCapteur;
+        }
         
         public int getId (int idC){
             for (Capteur c : listeCapteur){
@@ -30,5 +33,6 @@ public class Groupe {
         }
             return -1;
         }
+
 }
 		
