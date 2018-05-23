@@ -15,10 +15,10 @@ public class TestArduino {
     {
         TestArduino main = new TestArduino();
         //main.setup();
-        //main.start();
+        main.start();
         return 0;
     }
-        
+       
     private Connection connection;
     public GestionnaireFile gestionnaire ; 
 

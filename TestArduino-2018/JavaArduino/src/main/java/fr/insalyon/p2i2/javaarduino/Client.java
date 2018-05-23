@@ -17,7 +17,7 @@ public class Client {
     
     //constructeur de la classe 
     public Client (String n){
-        idClient= ++count; 
+        idClient =++count; 
         count ++; 
         nomClient = n;
     }
