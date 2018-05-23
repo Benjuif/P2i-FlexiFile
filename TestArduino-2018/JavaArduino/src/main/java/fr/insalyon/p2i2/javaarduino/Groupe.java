@@ -21,5 +21,14 @@ public class Groupe {
 	public String getNom(){
             return nomGroupe;
 	}
+        
+        public int getId (int idC){
+            for (Capteur c : listeCapteur){
+                if (c.getIdCapteur() == idC){
+                    return getIdGroupe();
+            } 
+        }
+            return -1;
+        }
 }
 		

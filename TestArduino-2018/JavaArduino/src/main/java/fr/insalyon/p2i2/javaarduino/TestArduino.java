@@ -103,32 +103,33 @@ public class TestArduino {
             
                 //calcul longueur file 
                 for (Groupe grp: gestionnaire.listeGroupe){
-                    // todo : chercher groupe correspondant au capteur
-                    try {
-                        //Creation de la requete
-                        String sqlStr = "INSERT INTO File(longueur, tmpAttente, idGroupe, dateMesure) VALUES (?,?,?,?)";
+                    int idGroupe = grp.getId(Integer.parseInt(splitted[0]));
+                    if (idGroupe>-1){
+                        try {
+                            //Creation de la requete
+                            String sqlStr = "INSERT INTO File(longueur, tmpAttente, idGroupe, dateMesure) VALUES (?,?,?,?)";
 
-                        PreparedStatement ps = connection.prepareStatement(sqlStr);
-                        int longueur = getLength(grp);
-                        long currentTime = System.currentTimeMillis();
-                        java.sql.Timestamp time = new java.sql.Timestamp(currentTime - 7200000);
+                            PreparedStatement ps = connection.prepareStatement(sqlStr);
+                            long currentTime = System.currentTimeMillis();
+                            java.sql.Timestamp time = new java.sql.Timestamp(currentTime - 7200000);
 
-                        ps.setInt(1,longueur);                       
-                        ps.setInt (3,grp.getIdGroupe());
-                        ps.setTimestamp(4,time);
-                      
-                        //execution de la requete
-                        ps.executeUpdate();
-                    }
-                    catch(SQLException e){
-                        //si une erreur se produit, affichage du message correspondant
-                        System.out.println(e.getMessage());
+                            ps.setInt(1,getLength(grp));
+                            ps.setInt(2,getTmpAttente(grp));
+                            ps.setInt (3,grp.getIdGroupe());
+                            ps.setTimestamp(4,time);
+
+                            //execution de la requete
+                            ps.executeUpdate();
+                        }
+                        catch(SQLException e){
+                            //si une erreur se produit, affichage du message correspondant
+                            System.out.println(e.getMessage());
+                        }
                     }
                 }
-
+                       
             }     
         };
-
 
         try {
 
@@ -240,7 +241,42 @@ public class TestArduino {
         }
         return longueur;
     }
-}
+    public int getTmpAttente (Groupe grp){
+        //distanace entre 2 capteurs = 3;
+        //densite = 4personne/m²;
+        //vitesse =0.033 personne/s;
+        int tmpAttente=0;
+        try{
+            String query = "select sum(l.distanceX *3*4*0.033) as TmpAttente  from Localisation l , Capteur c" +
+                           "where l.idCapteur = c.idCapteur and c.idGoupe=?" +
+                           "and idCapteur in  (select idCapteur " +
+                           "from Localisation l, File f , Capteur c, Groupe g " +
+                           "where f.idGroupe = g.idGroupe and g.idGroupe = c.idGroupe and l.idCapteur = c.idCapteur " +
+                           "and l.position <= f.longueur); ";
+            // Construction de l'objet « requête parametrée »
+                PreparedStatement ps = connection.prepareStatement(query);
+
+                // transformation en requête statique
+                ps.setInt(1,grp.getIdGroupe()); 
+
+                //execution de la requete
+                ResultSet rs = ps.executeQuery();
+                System.out.println("requete executee ....");
+
+                while ( rs.next () ) {
+                    tmpAttente = rs.getInt(query);
+                }
+            }
+        catch(SQLException e){
+            //si une erreur se produit, affichage du message correspondant
+            System.out.println(e.getMessage());
+            System.exit(0);                      
+        }            
+        return tmpAttente; 
+    }
+    
+    }
+
         
 
             

@@ -46,7 +46,7 @@ public class GestionnaireFile {
         try{            
             String query = "select * from Groupe";
        
-            // Construction de l'objet « requête parametrée »
+            // Construction de l'objet « requête statique »
             Statement statement= connection.createStatement();
             
             //execution de la requete
