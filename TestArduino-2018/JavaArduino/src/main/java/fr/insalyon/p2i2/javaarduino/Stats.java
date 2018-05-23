@@ -13,36 +13,29 @@ import java.sql.Date;
  */
 public class Stats {
         //attributs de la classe stats 
-        private int idStats ; 
-        private String repas; 
+        private int idStats ;  
         private Date date; 
-        private int valeur ; 
+        private int longueur;
+        private Date temps;
 
         //constructeur de la classe 
-        public Stats(int id, String r){
-            idStats= id; 
-            repas = r ; 
+        public Stats( ){
+          
         }
         
         // ------ getters -------     
         public int getidStats(){
             return idStats; 
         }
-        public String getRepas(){
-            return repas;
-        }
+
         public Date getDate(){
             return date; 
         }
-        public int getValeur(){
-            return valeur; 
-        }
+
         
         // ------ setters -------
         public void setDate (Date d){
             date = d;
         }
-        public void setValeur (int v){
-            valeur = v; 
-        }
+
 }
