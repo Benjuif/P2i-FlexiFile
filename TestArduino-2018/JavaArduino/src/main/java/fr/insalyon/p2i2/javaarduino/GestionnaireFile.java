@@ -118,7 +118,7 @@ public class GestionnaireFile {
         String query = "select MAX(m.valeur) from Capteur c, Mesure m where c.idCapteur=? and m.idCapteur= c.idCapteur ;";
         for (Groupe grp : listeGroupe ){                
             for (Capteur c : grp.getListeCapteur()){
-                   try{
+                try{
                     // Construction de l'objet « requête parametrée »
                     PreparedStatement ps = connection.prepareStatement(query);
 

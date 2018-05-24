@@ -147,6 +147,7 @@ public class TestArduino {
             
     
     public void start (){
+        // Objet matérialisant la console d'exécution (Affichage Écran / Lecture Clavier)
 
         try {
 
@@ -245,7 +246,7 @@ public class TestArduino {
                            "and idCapteur in  (select idCapteur " +
                            "from Localisation l, File f , Capteur c, Groupe g " +
                            "where f.idGroupe = g.idGroupe and g.idGroupe = c.idGroupe and l.idCapteur = c.idCapteur " +
-                           "and l.position <= f.longueur); ";
+                           "and l.position <= f.longueur) ";
             // Construction de l'objet « requête parametrée »
                 PreparedStatement ps = connection.prepareStatement(query);
 
