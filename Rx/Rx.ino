@@ -61,12 +61,10 @@ void loop(void) {
       return;
     }*/
 
-    
-    //time_t ti = now().unixtime();
     while (radio.available()) 
     {
       radio.read(&rcv_val, sizeof(payload_t));
-      Serial.println(String(rcv_val.id_capteur)+","+String(rcv_val.valeur)+","+String(ti));
+      Serial.println(String(rcv_val.id_capteur)+","+String(rcv_val.valeur)+"000"+","+String(ti));
     }
 }
 

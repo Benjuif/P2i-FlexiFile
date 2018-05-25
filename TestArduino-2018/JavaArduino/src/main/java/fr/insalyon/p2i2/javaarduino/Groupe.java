@@ -29,8 +29,8 @@ public class Groupe {
             for (Capteur c : listeCapteur){
                 if (c.getIdCapteur() == idC){
                     return getIdGroupe();
-            } 
-        }
+                } 
+            }
             return -1;
         }
 

@@ -11,15 +11,15 @@ import java.sql.PreparedStatement;
 
 public class TestArduino {
     
-    final String DB_NAME = "G223_B_BD2";
-    final String DB_LOGIN = "G223_B";
-    final String DB_PW = "G223_B";
+    final String DB_NAME = "flexifile";//"G223_B_BD2";
+    final String DB_LOGIN = "root";//"G223_B";
+    final String DB_PW = "4rfvBHU.";
     final Console console = new Console();
     ArduinoManager arduino;
     
     
     
-    public static int main(String[] args)
+    public static void main(String[] args)
     {
         try {
             TestArduino main = new TestArduino();
@@ -29,9 +29,9 @@ public class TestArduino {
         catch (Exception e)
         {
             System.err.println(e.getMessage());
-            return -1;
+            
         }
-        return 0;
+        
     }
        
     private Connection connection;
@@ -44,7 +44,8 @@ public class TestArduino {
             System.out.println("Driver trouvé...");
 
             // Création d'une connexion sur la base de donnée
-            connection = DriverManager.getConnection("jdbc:mysql://PC-TP-MYSQL.insa-lyon.fr:3306/" + DB_NAME, DB_LOGIN, DB_PW);
+            //connection = DriverManager.getConnection("jdbc:mysql://PC-TP-MYSQL.insa-lyon.fr:3306/" + DB_NAME, DB_LOGIN, DB_PW);
+            connection = DriverManager.getConnection("jdbc:mysql://62.210.182.114:3306/" + DB_NAME, DB_LOGIN, DB_PW);
             System.out.println("Connexion établie...");
 
         } catch (ClassNotFoundException e) {
@@ -67,7 +68,7 @@ public class TestArduino {
         console.log("----");
 
         // Recherche d'un port disponible (avec une liste d'exceptions si besoin)
-        String myPort = ArduinoManager.searchVirtualComPort("COM0", "/dev/tty.usbserial-FTUS8LMO", "COM1", "COM2", "COM3", "COM7");
+        String myPort = ArduinoManager.searchVirtualComPort("COM0", "/dev/tty.usbserial-FTUS8LMO", "COM1", "COM2", "COM4", "COM7");
 
         console.log("CONNEXION au port " + myPort);
         
@@ -81,22 +82,28 @@ public class TestArduino {
 
                 String[] splitted = line.split(",");
                 //insertion de la mesure en BD
+                try 
+                {
+                    int idCapteur = Integer.parseInt(splitted[0]);
+                    double valeur = Double.parseDouble(splitted[1]);
+                    long timestamp = Long.parseLong(splitted[2]);
+                    java.sql.Timestamp times = new java.sql.Timestamp(timestamp - 7200000); //local time -> utc (2 hour)
 
-                int idCapteur = Integer.parseInt(splitted[0]);
-                double valeur = Double.parseDouble(splitted[1]);
-                long timestamp = Long.parseLong(splitted[2]);
-                java.sql.Timestamp times = new java.sql.Timestamp(timestamp - 7200000); //local time -> utc (2 hour)
-                
-                insertMeasures(idCapteur, times, valeur);
+                    insertMeasures(idCapteur, times, valeur);
 
-                //calcul longueur file 
-                for (Groupe grp: gestionnaire.getListeGroupe()){
+                    //calcul longueur file 
+                    for (Groupe grp: gestionnaire.getListeGroupe()){
 
-                    int idGroupe = grp.getId(Integer.parseInt(splitted[0]));
-                    if (idGroupe>-1){
-                        insertIntoFile( grp, idCapteur);
-                    }
-                }        
+                        int idGroupe = grp.getId(idCapteur);
+                        if (idGroupe > -1){
+                            insertIntoFile(grp, idCapteur, times);
+                        }
+                    } 
+                }
+                catch (Exception e)
+                {
+                    
+                }
             }     
         };
    
@@ -198,7 +205,7 @@ public class TestArduino {
         return longueur;
     }
     
-    public int getTmpAttente (Groupe grp){
+    public int getTmpAttente (Groupe grp, int idMesure, int longueur){
         //distanace entre 2 capteurs = 3;
         //densite = 4personne/m²;
         //vitesse =0.05 personne/s;
@@ -214,13 +221,15 @@ public class TestArduino {
                                                 "AND m.idMesure=? " +
                                                 "AND TIME_TO_SEC(TIMEDIFF(m.dateMesure, now())) between 0 and 60 " +
                                                 "AND l.idCapteur = c.idCapteur " +
-                                                "AND l.pos <= ?);";
+                                                "AND l.pos <= ?)";
             // Construction de l'objet « requête parametrée »
                 PreparedStatement ps = connection.prepareStatement(query);
 
                 // transformation en requête statique
                 ps.setInt(1,grp.getIdGroupe()); 
-
+                ps.setInt(2, idMesure);
+                ps.setInt(3, longueur);
+                
                 //execution de la requete
                 ResultSet rs = ps.executeQuery();
                 System.out.println("requete executee ....");
@@ -240,15 +249,15 @@ public class TestArduino {
     public void insertMeasures (int idCapteur , java.sql.Timestamp dateMesure , double valeur){
         try {
  
-            String sqlStr = "INSERT INTO Mesure(idCapteur, dateMesure, valeur) VALUES (?,?,?)";
-            PreparedStatement ps= connection.prepareStatement(sqlStr);
+                String sqlStr = "INSERT INTO Mesure(idCapteur, dateMesure, valeur) VALUES (?,?,?)";
+                PreparedStatement ps= connection.prepareStatement(sqlStr);
 
-            ps.setInt(1, idCapteur);
-            ps.setTimestamp(2, dateMesure);
-            ps.setDouble(3, valeur);
-           
-            //execution de la requete
-            ps.executeUpdate();
+                ps.setInt(1, idCapteur);
+                ps.setTimestamp(2, dateMesure);
+                ps.setDouble(3, valeur);
+
+                //execution de la requete
+                ps.executeUpdate();
             }
         catch(NumberFormatException e){
             //si une erreur se produit, affichage du message correspondant
@@ -257,27 +266,39 @@ public class TestArduino {
         catch (SQLException e) {
             //si une erreur se produit, affichage du message correspondant
             System.out.println(e.getMessage());
-                }
+        }
             
     }
     
-    public void insertIntoFile ( Groupe grp , int idCapteur ){
+    public void insertIntoFile ( Groupe grp , int idCapteur, java.sql.Timestamp times){
         try {
-            //Creation de la requete
-            String sqlStr = "INSERT INTO File(longueur, tmpAttente, idGroupe, dateMesure) VALUES (?,?,?,?)";
+                String sqlStr = "SELECT idMesure from Mesure where dateMesure=? and idCapteur=?";
+                
+                PreparedStatement ps = connection.prepareStatement(sqlStr);
+                ps.setTimestamp(1, times);
+                ps.setInt(2, idCapteur);
+                ResultSet rs = ps.executeQuery();
+                
+                int idMesure = 0;
+                while ( rs.next () ) {
+                   idMesure = rs.getInt("idMesure");
+                }
+                
 
-            PreparedStatement ps = connection.prepareStatement(sqlStr);
+                int length = getLength(grp);
+            
+                //Creation de la requete
+                sqlStr = "INSERT INTO File(longueur, tmpAttente, idGroupe, dateMesure) VALUES (?,?,?,?)";
 
-            long currentTime = System.currentTimeMillis();
-            java.sql.Timestamp time = new java.sql.Timestamp(currentTime - 7200000);
+                ps = connection.prepareStatement(sqlStr);
 
-            ps.setInt(1,getLength(grp));
-            ps.setInt(2,getTmpAttente(grp));
-            ps.setInt (3,idCapteur);
-            ps.setTimestamp(4,time);
+                ps.setInt(1,length);
+                ps.setInt(2,getTmpAttente(grp, idMesure, length));
+                ps.setInt (3,grp.getIdGroupe());
+                ps.setTimestamp(4,times);
 
-            //execution de la requete
-            ps.executeUpdate();
+                //execution de la requete
+                ps.executeUpdate();
             }
         catch(SQLException e){
             //si une erreur se produit, affichage du message correspondant
@@ -285,5 +306,5 @@ public class TestArduino {
         }
     }
     
-    }
+}
 
