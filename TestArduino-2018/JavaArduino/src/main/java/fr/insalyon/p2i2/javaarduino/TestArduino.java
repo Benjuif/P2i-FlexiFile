@@ -3,7 +3,6 @@ package fr.insalyon.p2i2.javaarduino;
 import fr.insalyon.p2i2.javaarduino.usb.ArduinoManager;
 import fr.insalyon.p2i2.javaarduino.util.Console;
 import java.io.IOException;
-import static java.lang.System.console;
 import java.sql.*;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -12,9 +11,13 @@ import java.sql.PreparedStatement;
 
 public class TestArduino {
     
-    const String DB_NAME = "G223_B_BD2";
-    const String DB_LOGIN = "G223_B";
-    const String DB_PW = "G223_B";
+    final String DB_NAME = "G223_B_BD2";
+    final String DB_LOGIN = "G223_B";
+    final String DB_PW = "G223_B";
+    final Console console = new Console();
+    ArduinoManager arduino;
+    
+    
     
     public static int main(String[] args)
     {
@@ -23,7 +26,7 @@ public class TestArduino {
             main.setup();
             main.start();
         }
-        catch (Exception ex)
+        catch (Exception e)
         {
             System.err.println(e.getMessage());
             return -1;
@@ -52,7 +55,7 @@ public class TestArduino {
             System.exit(0);
         }
         // Objet matérialisant la console d'exécution (Affichage Écran / Lecture Clavier)
-        final Console console = new Console();
+       
 
         // Affichage sur la console
         console.log("DÉBUT du programme TestArduino");
@@ -68,7 +71,6 @@ public class TestArduino {
 
         console.log("CONNEXION au port " + myPort);
         
-        ArduinoManager arduino;
         arduino = new ArduinoManager(myPort) {
             @Override
             protected void onData(String line) {
@@ -79,65 +81,22 @@ public class TestArduino {
 
                 String[] splitted = line.split(",");
                 //insertion de la mesure en BD
-                try {
-                    //Creation de la requete
-                    
-                    String sqlStr = "INSERT INTO Mesure(idCapteur, dateMesure, valeur) VALUES (?,?,?)";
-                    PreparedStatement ps= connection.prepareStatement(sqlStr);
-                    int idCapteur = Integer.parseInt(splitted[0]);
-                    double valeur = Double.parseDouble(splitted[1]);
-                    long timestamp = Long.parseLong(splitted[2]);
-                    java.sql.Timestamp times = new java.sql.Timestamp(timestamp - 7200000); //local time -> utc (2 hour)
-                    
-                    ps.setInt(1, idCapteur);
-                    ps.setTimestamp(2, times);
-                    ps.setDouble(3, valeur);
-                    //execution de la requete
-                    ps.executeUpdate();
-                }
-                catch(NumberFormatException e){
-                    //si une erreur se produit, affichage du message correspondant
-                    System.out.println(e.getMessage());
-                } catch (SQLException e) {
-                    //si une erreur se produit, affichage du message correspondant
-                    System.out.println(e.getMessage());
-                }
-            
+
+                int idCapteur = Integer.parseInt(splitted[0]);
+                double valeur = Double.parseDouble(splitted[1]);
+                long timestamp = Long.parseLong(splitted[2]);
+                java.sql.Timestamp times = new java.sql.Timestamp(timestamp - 7200000); //local time -> utc (2 hour)
+                
+                insertMeasures(idCapteur, times, valeur);
+
                 //calcul longueur file 
                 for (Groupe grp: gestionnaire.getListeGroupe()){
 
-                    //int idGroupe = grp.getId(Integer.parseInt(splitted[0]));
-                   // if (idGroupe>-1){
-                   
-                    int idCapteur = Integer.parseInt(splitted[0]);
-                    Capteur capteur = grp.getListeCapteur().stream().filter((capt) -> capt.getIdCapteur() == idCapteur).findFirst().orElse(null);
-                    if (capteur != null)
-                    {
-
-                        try {
-                            //Creation de la requete
-                            String sqlStr = "INSERT INTO File(longueur, tmpAttente, idGroupe, dateMesure) VALUES (?,?,?,?)";
-
-                            PreparedStatement ps = connection.prepareStatement(sqlStr);
-
-                            long currentTime = System.currentTimeMillis();
-                            java.sql.Timestamp time = new java.sql.Timestamp(currentTime - 7200000);
-
-                            ps.setInt(1,getLength(grp));
-                            ps.setLong(2,getTmpAttente(grp));
-                            ps.setInt (3,grp.getIdGroupe());
-                            ps.setTimestamp(4,time);
-
-                            //execution de la requete
-                            ps.executeUpdate();
-                        }
-                        catch(SQLException e){
-                            //si une erreur se produit, affichage du message correspondant
-                            System.out.println(e.getMessage());
-                        }
+                    int idGroupe = grp.getId(Integer.parseInt(splitted[0]));
+                    if (idGroupe>-1){
+                        insertIntoFile( grp, idCapteur);
                     }
-                }
-                       
+                }        
             }     
         };
    
@@ -210,10 +169,13 @@ public class TestArduino {
         int longueur=0;
             
         try {
-            String query = "Select Min(l.position) " +
-                            "from Capteur c, Localisation l , Mesure m " +
-                            "where c.idGroupe = ? and  m.idCapteur= c.idCapteur and l.idCapteur = c.idCapteur and l.idGroupe=c.idGroupe " +
-                            "and m.valeur >=c.distanceX";
+            String query = "SELECT Min(l.pos)" +
+                           "FROM Capteur c, Localisation l , Mesure m " +
+                           "WHERE c.idGroupe = ? " +
+                           "AND m.idCapteur= c.idCapteur " +
+                           "AND l.idCapteur = c.idCapteur " +
+                           "AND TIME_TO_SEC(TIMEDIFF(m.dateMesure, now())) between 0 and 60 " +
+                           "AND m.valeur >= l.distanceX";
             
                  
             // Construction de l'objet « requête parametrée »
@@ -235,18 +197,24 @@ public class TestArduino {
         }
         return longueur;
     }
-    public long getTmpAttente (Groupe grp){
+    
+    public int getTmpAttente (Groupe grp){
         //distanace entre 2 capteurs = 3;
         //densite = 4personne/m²;
-        //vitesse =0.033 personne/s;
-        long tmpAttente=0;
+        //vitesse =0.05 personne/s;
+        int tmpAttente=0;
         try{
-            String query = "select ROUND(sum(l.distanceX *3*4*0.033),2) as TmpAttente  from Localisation l , Capteur c" +
-                           "where l.idCapteur = c.idCapteur and c.idGoupe=?" +
-                           "and idCapteur in  (select idCapteur " +
-                           "from Localisation l, File f , Capteur c, Groupe g " +
-                           "where f.idGroupe = g.idGroupe and g.idGroupe = c.idGroupe and l.idCapteur = c.idCapteur " +
-                           "and l.position <= f.longueur) ";
+            String query = "SELECT ROUND(SUM(l.distanceX *3*4*0.05),2) as TmpAttente" +
+                           "FROM Localisation l , Capteur c " +
+                           "WHERE l.idCapteur = c.idCapteur " +
+                           "AND c.idGroupe=? " +
+                           "AND c.idCapteur IN (SELECT c.idCapteur" +
+                                                "FROM Localisation l, Capteur c, Groupe g, Mesure m" +
+                                                "WHERE g.idGroupe = c.idGroupe " +
+                                                "AND m.idMesure=? " +
+                                                "AND TIME_TO_SEC(TIMEDIFF(m.dateMesure, now())) between 0 and 60 " +
+                                                "AND l.idCapteur = c.idCapteur " +
+                                                "AND l.pos <= ?);";
             // Construction de l'objet « requête parametrée »
                 PreparedStatement ps = connection.prepareStatement(query);
 
@@ -258,7 +226,7 @@ public class TestArduino {
                 System.out.println("requete executee ....");
 
                 while ( rs.next () ) {
-                    tmpAttente = rs.getLong(query);
+                    tmpAttente = rs.getInt(query);
                 }
             }
         catch(SQLException e){
@@ -269,12 +237,53 @@ public class TestArduino {
         return tmpAttente; 
     }
     
-    }
+    public void insertMeasures (int idCapteur , java.sql.Timestamp dateMesure , double valeur){
+        try {
+ 
+            String sqlStr = "INSERT INTO Mesure(idCapteur, dateMesure, valeur) VALUES (?,?,?)";
+            PreparedStatement ps= connection.prepareStatement(sqlStr);
 
-        
-
+            ps.setInt(1, idCapteur);
+            ps.setTimestamp(2, dateMesure);
+            ps.setDouble(3, valeur);
+           
+            //execution de la requete
+            ps.executeUpdate();
+            }
+        catch(NumberFormatException e){
+            //si une erreur se produit, affichage du message correspondant
+            System.out.println(e.getMessage());
+        } 
+        catch (SQLException e) {
+            //si une erreur se produit, affichage du message correspondant
+            System.out.println(e.getMessage());
+                }
             
-     
-     
-			
+    }
+    
+    public void insertIntoFile ( Groupe grp , int idCapteur ){
+        try {
+            //Creation de la requete
+            String sqlStr = "INSERT INTO File(longueur, tmpAttente, idGroupe, dateMesure) VALUES (?,?,?,?)";
+
+            PreparedStatement ps = connection.prepareStatement(sqlStr);
+
+            long currentTime = System.currentTimeMillis();
+            java.sql.Timestamp time = new java.sql.Timestamp(currentTime - 7200000);
+
+            ps.setInt(1,getLength(grp));
+            ps.setInt(2,getTmpAttente(grp));
+            ps.setInt (3,idCapteur);
+            ps.setTimestamp(4,time);
+
+            //execution de la requete
+            ps.executeUpdate();
+            }
+        catch(SQLException e){
+            //si une erreur se produit, affichage du message correspondant
+            System.out.println(e.getMessage());
+        }
+    }
+    
+    }
 

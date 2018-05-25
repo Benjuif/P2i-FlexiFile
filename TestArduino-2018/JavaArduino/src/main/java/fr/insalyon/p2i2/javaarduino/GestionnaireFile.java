@@ -5,11 +5,7 @@
  */
 package fr.insalyon.p2i2.javaarduino;
 
-import fr.insalyon.p2i2.javaarduino.usb.ArduinoManager;
-import fr.insalyon.p2i2.javaarduino.util.Console;
-import java.io.IOException;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -115,7 +111,8 @@ public class GestionnaireFile {
     *  la distance X à laquelle il est positionné par rapport au  mur (obstacle à vide) 
     */
     public void setDistanceX(){ 
-        String query = "select MAX(m.valeur) from Capteur c, Mesure m where c.idCapteur=? and m.idCapteur= c.idCapteur ;";
+        String query = "select MAX(m.valeur) from Capteur c, Mesure m "
+                + "where c.idCapteur=? and m.idCapteur= c.idCapteur ;";
         for (Groupe grp : listeGroupe ){                
             for (Capteur c : grp.getListeCapteur()){
                 try{

@@ -16,7 +16,7 @@ public class File {
         //attributs de la classe file 
         private final int idFile;  
         private int idGroupe; 
-        private int longeur; 
+        private int longueur; 
         public Date tmpAttente; 
         private Date dateMesure; 
 
@@ -33,8 +33,8 @@ public class File {
         public int getIdGroupe(){
             return idGroupe; 
         }
-        public int getLongeur(){
-            return longeur; 
+        public int getLongueur(){
+            return longueur; 
         }
         public Date getTmpAttente(){
             return tmpAttente ; 
@@ -45,7 +45,7 @@ public class File {
         
         // ------ setters -------
         public void setLongeur(int l) {
-            longeur = l;
+            longueur = l;
         }
         public void setTmpAttente(Date t ){
             tmpAttente = t;
