@@ -20,18 +20,27 @@ public class GestionnaireFile {
     //Attributs de la classe GestionairFile
     private ArrayList <Groupe> listeGroupe = new ArrayList <Groupe>(); 
     private Client client ; 
-    private Connection connection; 
+    private Connection connection;
+    private boolean _initialized;
     
     
     //Constructeur
     public GestionnaireFile (Client c ,Connection con){
         client = c;
         connection = con ;
+        _initialized = false;
     }
         
     public void setup()
     {
+        this.initListGroupe();
         this.initCapteur();
+        
+    }
+    
+    public boolean isSetup()
+    {
+        return _initialized;
     }
     
     public void start(){
@@ -42,9 +51,10 @@ public class GestionnaireFile {
                     public void run() {
                         setDistanceX();
                         updateDistanceX();
+                        _initialized = true;
                     }
                 }, 
-                60000 
+                1000 
         );
     }
     
@@ -69,7 +79,7 @@ public class GestionnaireFile {
         }
         catch(SQLException e){
             //si une erreur se produit, affichage du message correspondant
-            System.out.println(e.getMessage());
+           e.printStackTrace();
             System.exit(0);
         } 
     }
@@ -101,7 +111,7 @@ public class GestionnaireFile {
             }
             catch(SQLException e){
                 //si une erreur se produit, affichage du message correspondant
-                System.out.println(e.getMessage());
+               e.printStackTrace();
                 System.exit(0);
                 }
             }
@@ -111,8 +121,8 @@ public class GestionnaireFile {
     *  la distance X à laquelle il est positionné par rapport au  mur (obstacle à vide) 
     */
     public void setDistanceX(){ 
-        String query = "select MAX(m.valeur) from Capteur c, Mesure m "
-                + "where c.idCapteur=? and m.idCapteur= c.idCapteur ;";
+        String query = "select MAX(m.valeur) as distanceX from Capteur c, Mesure m "+
+                       "where c.idCapteur=? and m.idCapteur=c.idCapteur;";
         for (Groupe grp : listeGroupe ){                
             for (Capteur c : grp.getListeCapteur()){
                 try{
@@ -124,13 +134,14 @@ public class GestionnaireFile {
 
                     //execution de la requete
                     ResultSet rs = ps.executeQuery();
+                    System.out.println(ps);
                     System.out.println("requete executee ....");
-
-                    c.localisation.setDistanceX(rs.getInt(query));
+                    rs.next();
+                    c.localisation.setDistanceX(rs.getInt("distanceX"));
                 }
                 catch(Exception e){
                     //si une erreur se produit, affichage du message correspondant
-                    System.out.println(e.getMessage());
+                   e.printStackTrace();
                     System.exit(0);
                 }
             }
@@ -158,7 +169,7 @@ public class GestionnaireFile {
 
                 catch(SQLException e){
                     //si une erreur se produit, affichage du message correspondant
-                    System.out.println(e.getMessage());
+                    e.printStackTrace();
                     System.exit(0);
                 }
             }

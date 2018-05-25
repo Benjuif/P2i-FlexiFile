@@ -64,7 +64,7 @@ void loop(void) {
     while (radio.available()) 
     {
       radio.read(&rcv_val, sizeof(payload_t));
-      Serial.println(String(rcv_val.id_capteur)+","+String(rcv_val.valeur)+"000"+","+String(ti));
+      Serial.println(String(rcv_val.id_capteur)+","+String(rcv_val.valeur)+","+String(ti)+"000");
     }
 }
 

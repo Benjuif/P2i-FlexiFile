@@ -11,7 +11,7 @@ public class Capteur {
 	private final int numSerie;
         private final String fabricant = "Grove";
         public ArrayList <Mesure> listeMesure ; 
-        public Localisation localisation; 
+        public Localisation localisation = new Localisation(); 
 	
         //Constructeur de la classe
 	public Capteur (int id, int idG,int num){

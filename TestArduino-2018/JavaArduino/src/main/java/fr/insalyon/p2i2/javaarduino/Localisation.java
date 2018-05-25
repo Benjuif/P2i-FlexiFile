@@ -14,9 +14,9 @@ import java.sql.Date;
 public class Localisation {
         
         // attributs de la classe localisation
-        private final int idLocalisation; 
+        private int idLocalisation; 
         private int idCapteur; 
-        private final int position; 
+        private int position; 
         private int distanceX ; 
         private Date dateDebut; 
         private Date dateFin; 
@@ -29,6 +29,10 @@ public class Localisation {
             dateDebut= date; 
             
         }
+        
+        public Localisation(){
+        }
+
         
         // ------ getters -------
         public int getIdLocalisation(){

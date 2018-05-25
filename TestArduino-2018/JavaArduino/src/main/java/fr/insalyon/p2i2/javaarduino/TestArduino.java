@@ -11,9 +11,9 @@ import java.sql.PreparedStatement;
 
 public class TestArduino {
     
-    final String DB_NAME = "flexifile";//"G223_B_BD2";
-    final String DB_LOGIN = "root";//"G223_B";
-    final String DB_PW = "4rfvBHU.";
+    final String DB_NAME = "G223_B_BD2";
+    final String DB_LOGIN = "G223_B";
+    final String DB_PW = "G223_B";
     final Console console = new Console();
     ArduinoManager arduino;
     
@@ -91,16 +91,20 @@ public class TestArduino {
 
                     insertMeasures(idCapteur, times, valeur);
 
-                    //calcul longueur file 
-                    for (Groupe grp: gestionnaire.getListeGroupe()){
+                    //calcul longueur file une fois le système initialisé
+                    if (gestionnaire.isSetup())
+                    {
+                        for (Groupe grp: gestionnaire.getListeGroupe()){
 
                         int idGroupe = grp.getId(idCapteur);
                         if (idGroupe > -1){
                             insertIntoFile(grp, idCapteur, times);
                         }
                     } 
+                    }
+                    
                 }
-                catch (Exception e)
+                catch (NumberFormatException e)
                 {
                     
                 }
@@ -168,7 +172,7 @@ public class TestArduino {
      *  @param grp: groupe de capteurs */  
 
      
-    /** Méthode permettant de récupérer la longeur de la file d'attente d'un groupe passée en paramètre
+    /** Méthode permettant de récupérer la longueur de la file d'attente d'un groupe passée en paramètre
     *  @param grp: groupe de capteurs
     * @return retourne la longeur de la file d'attente à un instant t  */
     public int getLength(Groupe grp){ 
@@ -176,30 +180,30 @@ public class TestArduino {
         int longueur=0;
             
         try {
-            String query = "SELECT Min(l.pos)" +
-                           "FROM Capteur c, Localisation l , Mesure m " +
+            String query = "SELECT Min(l.pos) as longueur " +
+                           "FROM Capteur c , Localisation l , Mesure m " +
                            "WHERE c.idGroupe = ? " +
                            "AND m.idCapteur= c.idCapteur " +
                            "AND l.idCapteur = c.idCapteur " +
                            "AND TIME_TO_SEC(TIMEDIFF(m.dateMesure, now())) between 0 and 60 " +
                            "AND m.valeur >= l.distanceX";
             
-                 
+            
             // Construction de l'objet « requête parametrée »
             PreparedStatement ps = connection.prepareStatement(query);
             
             // transformation en requête statique
             ps.setInt(1,idGroupe) ; 
-     
+            System.out.println(ps);
             //execution de la requete
             ResultSet rs = ps.executeQuery();
             System.out.println("requete executee ....");
-            
-            longueur= rs.getInt(query);
+            rs.next();
+            longueur= rs.getInt("longueur");
         }
         catch(SQLException e){
             //si une erreur se produit, affichage du message correspondant
-            System.out.println(e.getMessage());
+            e.printStackTrace();
             System.exit(0);
         }
         return longueur;
@@ -261,11 +265,11 @@ public class TestArduino {
             }
         catch(NumberFormatException e){
             //si une erreur se produit, affichage du message correspondant
-            System.out.println(e.getMessage());
+            e.printStackTrace();
         } 
         catch (SQLException e) {
             //si une erreur se produit, affichage du message correspondant
-            System.out.println(e.getMessage());
+           e.printStackTrace();
         }
             
     }
@@ -302,7 +306,7 @@ public class TestArduino {
             }
         catch(SQLException e){
             //si une erreur se produit, affichage du message correspondant
-            System.out.println(e.getMessage());
+            e.printStackTrace();
         }
     }
     
